@@ -35,7 +35,7 @@ def close_issues() -> int:
             result = ast.literal_eval(line[len("RESULT="):])
     if not result and res and res[0].get("status") != "completed":
         summary(f"- ⚠️ Jira reset did not run: {(res[0].get('error') or out)[:300]}")
-        return 1
+        return 0  # keep going: main CI still resets Flow
     closed = result.get("closed", [])
     summary(f"- Jira: closed {len(closed)} old CI failure issue(s) as Done, labelled demo-reset "
             f"({', '.join(closed) or 'none open'})")
