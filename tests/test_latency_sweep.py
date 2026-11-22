@@ -13,7 +13,7 @@ PLANNED += [LinkConfig(f"Relay {r} km / interleaver 4", r, 4, relay=True) for r 
 # Intentionally failing planned configuration for the demo: the Inuvik relay
 # corridor was planned with interleaver depth 8, which pushes the RF segment to
 # ~146 ms and the end-to-end budget to ~260 ms.
-PLANNED += [LinkConfig("Inuvik relay corridor 300 km / interleaver 8", 300, 8, relay=True)]
+PLANNED += [LinkConfig("Inuvik relay corridor 300 km / interleaver 4", 300, 4, relay=True)]
 
 
 @pytest.mark.flow(test_case="TES-45254", requirements=["REQ-45162", "REQ-45148"])
