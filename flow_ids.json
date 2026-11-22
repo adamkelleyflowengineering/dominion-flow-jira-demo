@@ -1,0 +1,72 @@
+{
+  "project_id": "7dded36f-c028-4fcb-948a-e2b733c35541",
+  "project_url": "https://branch.flowengineering.com/demo/dominion-scout-arctic-edge-jira-demo",
+  "test_cases": {
+    "TES-45242": {
+      "id": "a9c8153c-95c6-568c-8ee7-696e0c7178c2",
+      "name": "CI unit test coverage gate"
+    },
+    "TES-45245": {
+      "id": "c2063b34-1db4-5c18-b87f-b4ac395253d9",
+      "name": "CI static analysis gate"
+    },
+    "TES-45248": {
+      "id": "82d3d0ce-ad2e-5c6a-917d-99ededcfa173",
+      "name": "CI results publication check"
+    },
+    "TES-45252": {
+      "id": "390d1c31-9f86-5302-b8f5-ae0a427445ee",
+      "name": "Latency budget model unit tests"
+    },
+    "TES-45254": {
+      "id": "64dbee27-a5d3-5667-9e82-a79c85b91406",
+      "name": "Latency budget configuration sweep"
+    },
+    "TES-45257": {
+      "id": "9de91730-806a-59b0-a224-9538fda51ad6",
+      "name": "Heater power command unit tests"
+    },
+    "TES-45259": {
+      "id": "36379b74-cf0b-5486-bc6c-a19315aecc8d",
+      "name": "Heater power command envelope sweep"
+    },
+    "TES-45262": {
+      "id": "fee9a177-8d32-56bd-8b0e-88e6029bf8b8",
+      "name": "GCS command serialization benchmark"
+    }
+  },
+  "requirements": {
+    "REQ-45158": {
+      "id": "78c654b6-e629-56d9-b5bf-0dd681fac73c",
+      "name": "Unit test statement coverage"
+    },
+    "REQ-45159": {
+      "id": "329e86d6-1698-501b-bd11-39c0f0449495",
+      "name": "High-severity static analysis findings"
+    },
+    "REQ-45160": {
+      "id": "0a24ee4d-2a35-5a1f-960d-13891f41e57b",
+      "name": "Automated verification on merge"
+    },
+    "REQ-45162": {
+      "id": "d18931ae-958c-59a0-8a8b-810e070f786e",
+      "name": "Datalink latency budget computation"
+    },
+    "REQ-45163": {
+      "id": "caf162d8-a6f2-5840-892d-d210864914f2",
+      "name": "Heater power command computation"
+    },
+    "REQ-45141": {
+      "id": "4a25ba8b-3a6a-5dff-b0c9-a239e595c6ea",
+      "name": "C2 link end-to-end latency"
+    },
+    "REQ-45148": {
+      "id": "b23e9fa5-51f4-52cc-aa67-a611a2bbf463",
+      "name": "RF link propagation and framing latency"
+    },
+    "REQ-45150": {
+      "id": "b256e01a-5612-545d-bfea-0277bde642e8",
+      "name": "GCS command serialization latency"
+    }
+  }
+}

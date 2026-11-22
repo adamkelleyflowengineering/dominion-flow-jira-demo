@@ -1,0 +1,63 @@
+name: Flow CI – verify requirements
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write   # sticky "Flow requirements check" comment on PRs
+      issues: write
+    steps:
+      - name: Record start time
+        run: echo "WORKFLOW_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Static analysis (ruff + bandit)
+        run: |
+          mkdir -p reports
+          ruff check .
+          bandit -r dominion_ci -f json -o reports/bandit.json || true
+
+      - name: Tests with coverage (JUnit XML)
+        id: tests
+        continue-on-error: true
+        run: >
+          pytest --junitxml=reports/junit.xml -o junit_family=xunit1
+          --cov=dominion_ci --cov-report=xml:reports/coverage.xml --cov-report=term
+
+      - name: Post results to Flow
+        if: always()
+        env:
+          FLOW_API_KEY: ${{ secrets.FLOW_API_KEY }}
+          FLOW_CUSTOMER: demo   # not a secret: as a secret, GitHub would mask the word "demo" in every link
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Pull requests get their own Flow branch: "GitHub PR #<n> – <title>"
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/post_to_flow.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: reports/
+
+      - name: Fail the job if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1

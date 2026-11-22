@@ -1,0 +1,92 @@
+name: Demo reset
+
+# One click on the Actions tab ("Run workflow") puts the demo back to its starting point:
+#  1. closes every open pull request (never merges) and deletes its branch
+#  2. rebuilds demo/inuvik-interleaver-fix as a one-line fix (interleaver 8 → 4) on top of main
+#  3. asks Flow to close old "CI failure: REQ-…" Jira Bugs in project DDM (Done, labelled demo-reset)
+#  4. re-runs main CI, so Flow records REQ-45162 as Fail again and opens ONE fresh Jira Bug
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: demo-reset
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      FIX_BRANCH: demo/inuvik-interleaver-fix
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Close open pull requests (not merged) and delete their branches
+        run: |
+          echo "## Demo reset" >> "$GITHUB_STEP_SUMMARY"
+          for n in $(gh pr list -R "$REPO" --state open --json number -q '.[].number'); do
+            head=$(gh pr view "$n" -R "$REPO" --json headRefName,isCrossRepository -q 'select(.isCrossRepository | not) | .headRefName')
+            gh pr close "$n" -R "$REPO" --comment "Closed by the Demo reset workflow (practice run). Not merged."
+            echo "- Closed PR #$n ($head)" >> "$GITHUB_STEP_SUMMARY"
+            if [ -n "$head" ] && [ "$head" != "main" ] && [ "$head" != "$FIX_BRANCH" ]; then
+              git push origin --delete "$head" || true
+            fi
+          done
+
+      - name: Rebuild the fix branch as a one-line change on main
+        run: |
+          git config user.name "Demo reset"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$FIX_BRANCH" origin/main
+          F=tests/test_latency_sweep.py
+          OLD='LinkConfig("Inuvik relay corridor 300 km / interleaver 8", 300, 8, relay=True)'
+          NEW='LinkConfig("Inuvik relay corridor 300 km / interleaver 4", 300, 4, relay=True)'
+          grep -qF "$OLD" "$F" || { echo "::error::main no longer has the interleaver-8 line"; exit 1; }
+          python3 -c "import sys;p='$F';s=open(p).read();open(p,'w').write(s.replace(sys.argv[1],sys.argv[2],1))" "$OLD" "$NEW"
+          test "$(git diff --numstat | awk '{print $1 "+" $2}')" = "1+1"
+          git commit -qam "Fix Inuvik relay corridor plan: interleaver depth 8 → 4"
+          git push --force origin "$FIX_BRANCH"
+          echo "- Fix branch ready: https://github.com/$REPO/compare/main...$FIX_BRANCH?expand=1" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Close old CI failure issues in Jira (via Flow)
+        env:
+          FLOW_API_KEY: ${{ secrets.FLOW_API_KEY }}
+          FLOW_CUSTOMER: demo   # not a secret: as a secret, GitHub would mask the word "demo" in every link
+        run: python scripts/demo_reset.py close-issues
+
+      - name: Re-run main CI (expected to fail on REQ-45162)
+        run: |
+          start=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run flow-ci.yml -R "$REPO" --ref main
+          id=""
+          for i in $(seq 1 30); do
+            sleep 5
+            id=$(gh run list -R "$REPO" -w flow-ci.yml -b main -e workflow_dispatch -L 1 \
+                 --json databaseId,createdAt -q ".[] | select(.createdAt >= \"$start\") | .databaseId")
+            [ -n "$id" ] && break
+          done
+          [ -n "$id" ] || { echo "::error::main CI run did not start"; exit 1; }
+          gh run watch "$id" -R "$REPO" > /dev/null || true
+          echo "- Main CI run: https://github.com/$REPO/actions/runs/$id ($(gh run view "$id" -R "$REPO" --json conclusion -q .conclusion), expected failure)" >> "$GITHUB_STEP_SUMMARY"
+          ticket=$(gh run view "$id" -R "$REPO" --log | grep -oE 'DDM-[0-9]+ (created|updated) – https://[^ ]+atlassian.net/browse/DDM-[0-9]+' | head -1)
+          echo "- Open Jira issue for the demo: ${ticket:-not found, check the main run log}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check Flow shows REQ-45162 failing
+        env:
+          FLOW_API_KEY: ${{ secrets.FLOW_API_KEY }}
+          FLOW_CUSTOMER: demo   # not a secret: as a secret, GitHub would mask the word "demo" in every link
+        run: |
+          python scripts/demo_reset.py verify
+          next=$(( $(gh api "repos/$REPO/issues?state=all&per_page=1" -q '.[0].number') + 1 ))
+          echo "- Next pull request will be **#$next**. Ready to demo." >> "$GITHUB_STEP_SUMMARY"

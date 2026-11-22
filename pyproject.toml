@@ -1,0 +1,21 @@
+[project]
+name = "dominion-ci"
+version = "0.1.0"
+description = "Dominion Dynamics x Flow CI demo: latency budget and heater power calcs with Flow-traced tests"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "bandit>=1.7"]
+
+[tool.setuptools]
+packages = ["dominion_ci"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["flow(test_case, requirements): Flow test case and requirement IDs"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.coverage.run]
+source = ["dominion_ci"]
